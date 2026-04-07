@@ -3,7 +3,7 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.ts";
 
-const app = new Hono();
+const app = new Hono().basePath("/make-server-091ae39b");
 
 app.use('*', logger(console.log));
 app.use(
@@ -125,11 +125,11 @@ function calcStats(readings: any[]) {
 }
 
 // ─── Health check ─────────────────────────────────────────────────────────────
-app.get("/make-server-091ae39b/health", (c) => c.json({ status: "ok" }));
+app.get("/health", (c) => c.json({ status: "ok" }));
 
 // ─── GET /readings ─────────────────────────────────────────────────────────────
 // Returns the most recent 20 readings (for sparkline + feed display).
-app.get("/make-server-091ae39b/readings", async (c) => {
+app.get("/readings", async (c) => {
   try {
     const items = await kv.getByPrefix(PREFIX);
     const sorted = (items as any[])
@@ -146,7 +146,7 @@ app.get("/make-server-091ae39b/readings", async (c) => {
 // ─── POST /readings ────────────────────────────────────────────────────────────
 // Called by the REAL sensor hardware every 120 seconds.
 // The frontend should NEVER call this — only the sensor should.
-app.post("/make-server-091ae39b/readings", async (c) => {
+app.post("/readings", async (c) => {
   try {
     const body = await c.req.json();
     const { watts } = body;
@@ -197,7 +197,7 @@ app.post("/make-server-091ae39b/readings", async (c) => {
 // ─── POST /readings/seed ───────────────────────────────────────────────────────
 // Seeds realistic 9W LED readings only if the DB is completely empty.
 // Uses actual timestamp gaps (120 s) for precise kWh accumulation.
-app.post("/make-server-091ae39b/readings/seed", async (c) => {
+app.post("/readings/seed", async (c) => {
   try {
     const existing = await kv.getByPrefix(PREFIX);
     if ((existing as any[]).length > 0) {
@@ -245,7 +245,7 @@ app.post("/make-server-091ae39b/readings/seed", async (c) => {
 });
 
 // ─── DELETE /readings/reset ───────────────────────────────────────────────────
-app.delete("/make-server-091ae39b/readings/reset", async (c) => {
+app.delete("/readings/reset", async (c) => {
   try {
     const items = await kv.getByPrefix(PREFIX);
     await Promise.all(
@@ -261,7 +261,7 @@ app.delete("/make-server-091ae39b/readings/reset", async (c) => {
 });
 
 // ─── GET /stats ────────────────────────────────────────────────────────────────
-app.get("/make-server-091ae39b/stats", async (c) => {
+app.get("/stats", async (c) => {
   try {
     const items = await kv.getByPrefix(PREFIX);
     const readings = (items as any[])
@@ -311,7 +311,7 @@ app.get("/make-server-091ae39b/stats", async (c) => {
 });
 
 // ─── GET /appliances ──────────────────────────────────────────────────────────
-app.get("/make-server-091ae39b/appliances", async (c) => {
+app.get("/appliances", async (c) => {
   try {
     const applianceItems = await kv.getByPrefix(APPLIANCE_PREFIX);
     const userAppliances = (applianceItems as any[])
@@ -358,7 +358,7 @@ app.get("/make-server-091ae39b/appliances", async (c) => {
 });
 
 // ─── POST /appliances ─────────────────────────────────────────────────────────
-app.post("/make-server-091ae39b/appliances", async (c) => {
+app.post("/appliances", async (c) => {
   try {
     const { name, percentage, color } = await c.req.json();
     if (!name || percentage == null || !color) {
@@ -379,7 +379,7 @@ app.post("/make-server-091ae39b/appliances", async (c) => {
 });
 
 // ─── PUT /appliances/:id ──────────────────────────────────────────────────────
-app.put("/make-server-091ae39b/appliances/:id", async (c) => {
+app.put("/appliances/:id", async (c) => {
   try {
     const id  = c.req.param("id");
     const { name, percentage, color } = await c.req.json();
@@ -405,7 +405,7 @@ app.put("/make-server-091ae39b/appliances/:id", async (c) => {
 });
 
 // ─── DELETE /appliances/:id ───────────────────────────────────────────────────
-app.delete("/make-server-091ae39b/appliances/:id", async (c) => {
+app.delete("/appliances/:id", async (c) => {
   try {
     const id  = c.req.param("id");
     const key = `${APPLIANCE_PREFIX}${id}`;
@@ -419,7 +419,7 @@ app.delete("/make-server-091ae39b/appliances/:id", async (c) => {
 });
 
 // ─── GET /ai-tips ─────────────────────────────────────────────────────────────
-app.get("/make-server-091ae39b/ai-tips", async (c) => {
+app.get("/ai-tips", async (c) => {
   try {
     const items = await kv.getByPrefix(PREFIX);
     const readings = (items as any[])
@@ -494,7 +494,7 @@ app.get("/make-server-091ae39b/ai-tips", async (c) => {
 });
 
 // ─── GET /user-stats ──────────────────────────────────────────────────────────
-app.get("/make-server-091ae39b/user-stats", async (c) => {
+app.get("/user-stats", async (c) => {
   try {
     const items = await kv.getByPrefix(PREFIX);
     const readings = (items as any[])
@@ -573,7 +573,7 @@ app.get("/make-server-091ae39b/user-stats", async (c) => {
 });
 
 // ─── GET /leaderboard ─────────────────────────────────────────────────────────
-app.get("/make-server-091ae39b/leaderboard", async (c) => {
+app.get("/leaderboard", async (c) => {
   try {
     const items = await kv.getByPrefix(PREFIX);
     const readings = (items as any[])
@@ -609,7 +609,7 @@ app.get("/make-server-091ae39b/leaderboard", async (c) => {
 });
 
 // ─── GET /monthly-report ──────────────────────────────────────────────────────
-app.get("/make-server-091ae39b/monthly-report", async (c) => {
+app.get("/monthly-report", async (c) => {
   try {
     const items = await kv.getByPrefix(PREFIX);
     const readings = (items as any[])
@@ -653,4 +653,5 @@ app.get("/make-server-091ae39b/monthly-report", async (c) => {
   }
 });
 
+app.all('*', (c) => c.text(c.req.path));
 Deno.serve(app.fetch);
