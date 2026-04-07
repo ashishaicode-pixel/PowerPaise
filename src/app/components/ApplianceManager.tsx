@@ -145,6 +145,38 @@ export function ApplianceManager({ onClose, onUpdate }: { onClose: () => void; o
     setShowForm(false);
   };
 
+  const handleResetAllData = async () => {
+    if (!confirm('⚠️ WARNING: This will DELETE ALL your electricity readings and reset your bill to zero. This action cannot be undone. Continue?')) {
+      return;
+    }
+
+    if (!confirm('Are you ABSOLUTELY sure? All data will be permanently deleted!')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/readings/reset`, {
+        method: 'DELETE',
+        headers: HEADERS,
+      });
+
+      if (res.ok) {
+        toast.success('All data reset to zero! Reloading...');
+        
+        // Refresh the page to show empty state
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        const error = await res.json();
+        toast.error(error.error || 'Failed to reset data');
+      }
+    } catch (err) {
+      console.log('Error resetting data:', err);
+      toast.error('Failed to reset data');
+    }
+  };
+
   const totalPercentage = appliances.reduce((sum, a) => sum + a.percentage, 0);
   const isValid = totalPercentage <= 100;
 
@@ -335,6 +367,20 @@ export function ApplianceManager({ onClose, onUpdate }: { onClose: () => void; o
               Add New Appliance
             </button>
           )}
+
+          {/* Reset All Data Button */}
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <button
+              onClick={handleResetAllData}
+              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
+            >
+              <AlertCircle className="w-5 h-5" />
+              Reset All Data (Start Fresh)
+            </button>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+              This will delete all readings and reset bill to ₹0
+            </p>
+          </div>
         </div>
       </motion.div>
     </div>

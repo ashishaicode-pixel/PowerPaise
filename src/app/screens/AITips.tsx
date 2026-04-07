@@ -130,7 +130,7 @@ export function AITips() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-24 transition-colors duration-300">
       <Header />
       
       <main className="max-w-md mx-auto p-4 space-y-4">
