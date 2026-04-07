@@ -167,7 +167,15 @@ app.get("/health", (c: any) => c.json({ status: "ok", storage: "postgresql" }));
 app.get("/readings", async (c: any) => {
   try {
     const rows = await dbSelect("sensor_readings", "select=*&order=id.asc&limit=20");
-    return c.json({ readings: rows, count: rows.length });
+    // Map snake_case DB columns → camelCase for frontend compatibility
+    const readings = rows.map((r: any) => ({
+      id:        r.id,
+      time:      r.time,
+      watts:     r.watts,
+      kwhToday:  r.kwh_today,
+      createdAt: r.created_at,
+    }));
+    return c.json({ readings, count: readings.length });
   } catch (err) {
     return c.json({ error: String(err) }, 500);
   }
