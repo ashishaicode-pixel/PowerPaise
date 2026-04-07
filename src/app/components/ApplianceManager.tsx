@@ -4,7 +4,7 @@ import { Plus, X, Pencil, Trash2, Check, AlertCircle } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 import { toast } from 'sonner';
 
-const BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-091ae39b`;
+const BASE_URL = `https://${projectId}.supabase.co/functions/v1/server`;
 const HEADERS = { 'Content-Type': 'application/json', Authorization: `Bearer ${publicAnonKey}` };
 
 interface Appliance {

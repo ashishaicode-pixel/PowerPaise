@@ -12,7 +12,7 @@ const RATE_PER_UNIT   = 7.2;   // ₹ per kWh (WBSEDCL)
 const DB_POLL_MS      = 30_000; // poll Supabase every 30 s (frontend reads only)
 const OUTLIER_WATTS   = 100;    // readings above this are flagged as sensor errors
 
-const BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-091ae39b`;
+const BASE_URL = `https://${projectId}.supabase.co/functions/v1/server`;
 const HEADERS  = { "Content-Type": "application/json", Authorization: `Bearer ${publicAnonKey}` };
 
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-091ae39b`;
+const BASE_URL = `https://${projectId}.supabase.co/functions/v1/server`;
 const HEADERS  = { 'Content-Type': 'application/json', Authorization: `Bearer ${publicAnonKey}` };
 const POLL_MS  = 30_000;
 

@@ -18,7 +18,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { toast } from 'sonner';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 
-const BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-091ae39b`;
+const BASE_URL = `https://${projectId}.supabase.co/functions/v1/server`;
 const HEADERS = { 'Content-Type': 'application/json', Authorization: `Bearer ${publicAnonKey}` };
 
 interface MonthlyReportData {
