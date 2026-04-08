@@ -190,10 +190,18 @@ app.post("/readings", async (c: any) => {
 // ─── GET /stats ────────────────────────────────────────────────────────────────
 app.get("/stats", async (c: any) => {
   try {
-    // Last 500 readings for accurate stats
-    const rows = await dbSelect("power_data", "select=*&order=id.asc&limit=500");
+    // Only use last 7 days of data for accurate current bill projection
+    // (avoids old induction/testing data from months ago inflating the average)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const rows = await dbSelect("power_data",
+      `select=*&order=id.asc&created_at=gte.${sevenDaysAgo}&limit=500`
+    );
 
-    if (rows.length === 0) {
+    // If no data in last 7 days, try last 30 days
+    const recentRows = rows.length > 0 ? rows :
+      await dbSelect("power_data", `select=*&order=id.asc&created_at=gte.${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()}&limit=500`);
+
+    if (recentRows.length === 0) {
       return c.json({
         currentMonthBill: 0, unitsUsed: 0, avgDailyKwh: 0,
         savedThisMonth: 0,   todayCost: 0, kwhToday: 0,
@@ -203,7 +211,7 @@ app.get("/stats", async (c: any) => {
       });
     }
 
-    const s = calcStats(rows)!;
+    const s = calcStats(recentRows)!;
     const lastMonthBill  = Math.round(s.currentMonthBill * 1.15);
     const savedThisMonth = Math.max(0, lastMonthBill - s.currentMonthBill);
 
