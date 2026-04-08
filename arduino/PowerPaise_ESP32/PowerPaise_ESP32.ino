@@ -39,8 +39,8 @@
 // ════════════════════════════════════════════════════════
 //  ★  CHANGE THESE  ★
 // ════════════════════════════════════════════════════════
-const char* WIFI_SSID     = "YOUR_WIFI_NAME";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* WIFI_SSID     = "realme c55 7825";
+const char* WIFI_PASSWORD = "fqhv5387";
 
 // ★ Set this to match YOUR CT sensor model (read comments above)
 const float CT_RATIO = 1000.0f;   // SCT-013-030/020/010/005 = 1000
