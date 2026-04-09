@@ -7,17 +7,17 @@
 #include <math.h>
 
 // ========== CONFIG — SIRF YEH BADLO ==========
-const char* WIFI_SSID     = "realme c550";
-const char* WIFI_PASSWORD = "123456789k";
+const char* WIFI_SSID     = "realme c555";
+const char* WIFI_PASSWORD = "123456789kkk";
 const char* SUPABASE_URL  = "https://yfbpuqwotfjpjiakncmf.supabase.co";
 const char* SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmYnB1cXdvdGZqcGppYWtuY21mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NDg5NjgsImV4cCI6MjA5MDUyNDk2OH0.Jrid3VVf4Hf5mwoFiu-F8nvGiD_FeELVUvgW6Q4qUr0";
 const char* TABLE_NAME    = "power_data";
 
 #define CT_PIN      34
 #define LED_PIN     2
-#define SAMPLES     400
+#define SAMPLES     1000
 #define VOLTAGE_AC  230.0
-#define CALIBRATION 30.0
+#define CALIBRATION 2000.0
 // ==============================================
 
 WebServer server(80);
@@ -57,11 +57,9 @@ void blink(int times, int onMs, int offMs) {
 void connectWiFi() {
   Serial.println("\n=== WiFi Connection ===");
 
-  WiFi.mode(WIFI_OFF);
-  delay(500);
-  WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
-  delay(300);
+  WiFi.disconnect();
+  delay(100);
 
   // Scan first
   Serial.println("Scanning networks...");
@@ -73,14 +71,13 @@ void connectWiFi() {
   }
 
   if (!found) {
-    Serial.println("ERROR: '" + String(WIFI_SSID) + "' not found!");
+    Serial.println("WARNING: '" + String(WIFI_SSID) + "' not found in scan!");
     Serial.println("Check hotspot name (case sensitive) and make sure it is ON.");
-    wifiOK = false;
-    blink(5, 100, 100);
-    return;
+    Serial.println("Trying to connect anyway in case scan missed it...");
+  } else {
+    Serial.println("Network found! Connecting...");
   }
 
-  Serial.println("Network found! Connecting...");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   int tries = 0;
@@ -143,64 +140,61 @@ void checkWiFi() {
 }
 
 // ========================================
-// CT SENSOR — Appliance ON/OFF Detection
+// CT SENSOR — Appliance ON/OFF Detection (TOP-CLIPPED HARDWARE FIX)
 // ========================================
 float readCurrent() {
-  // Step 1: Find DC midpoint
-  long sum = 0;
-  for (int i = 0; i < 200; i++) {
-    sum += analogRead(CT_PIN);
-    delayMicroseconds(150);
+  long total = 0;
+  for (int i = 0; i < 500; i++) {
+    total += analogRead(CT_PIN);
+    delayMicroseconds(100);
   }
-  int midpoint = sum / 200;
+  int midpoint = (int)(total / 500);
 
-  // Midpoint sanity check — if wildly off, sensor not connected
-  if (midpoint < 300 || midpoint > 3800) {
-    ctSensorOK = false;
-    return 0.0;
-  }
+  // Sensor works in ANY bias mode (Top clipped, Bottom clipped, Centered)
+  ctSensorOK = true;
 
-  // Step 2: Collect samples and calculate RMS
-  long  sumSq        = 0;
-  int   maxVal       = 0;
-  int   minVal       = 4095;
-  int   zeroCross    = 0;
-  int   lastSign     = 0;
+  double sumSq = 0.0;
+  int maxVal = 0, minVal = 4095;
 
   for (int i = 0; i < SAMPLES; i++) {
-    int raw      = analogRead(CT_PIN);
+    int raw = analogRead(CT_PIN);
+    double dev;
+
+    if (midpoint > 3500) {
+      // ── TOP-CLIPPED MODE (Your Hardware) ──
+      dev = (double)(4095 - raw);
+    } else if (midpoint < 600) {
+      // ── BOTTOM-CLIPPED MODE ──
+      dev = (double)raw;
+    } else {
+      // ── CENTERED MODE ──
+      dev = (double)(raw - midpoint);
+    }
+
     if (raw > maxVal) maxVal = raw;
     if (raw < minVal) minVal = raw;
-
-    int adj  = raw - midpoint;
-    sumSq   += (long)adj * adj;
-
-    // Count zero crossings — confirms AC waveform
-    int sign = (adj > 20) ? 1 : (adj < -20) ? -1 : 0;
-    if (lastSign != 0 && sign != 0 && sign != lastSign) zeroCross++;
-    if (sign != 0) lastSign = sign;
-
+    sumSq += dev * dev;
     delayMicroseconds(200);
   }
 
-  int peakPeak = maxVal - minVal;
-
-  // Step 3: Validate signal
-  // AC signal must have zero crossings AND enough amplitude
-  // If no crossings → DC noise / nothing connected → OFF
-  if (zeroCross < 2 || peakPeak < 100) {
+  // If there's absolutely no swing, sensor might be disconnected
+  if ((maxVal - minVal) < 5) {
     ctSensorOK = false;
     return 0.0;
   }
 
-  ctSensorOK = true;
-
-  float rmsADC  = sqrt((float)sumSq / SAMPLES);
+  float rmsADC = (float)sqrt(sumSq / SAMPLES);
   float voltRMS = (rmsADC / 4095.0) * 3.3;
-  float result  = (voltRMS / 33.0) * CALIBRATION;
 
-  if (isnan(result) || isinf(result)) return 0.0;
-  if (result > 100.0 || result < 0.05) return 0.0;
+  // Recover missing half of clipped wave
+  if (midpoint > 3500 || midpoint < 600) {
+    voltRMS *= 1.41421356;
+  }
+
+  float result = (voltRMS / 33.0) * CALIBRATION;
+
+  if (isnan(result) || isinf(result) || result > 100.0) return 0.0;
+  if ((result * VOLTAGE_AC) < 5.0) return 0.0; // Less than 5W is treated as 0W
 
   return result;
 }
